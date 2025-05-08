@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Travel Diary</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase.js"></script>
+
+    <!-- Tagify CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="text-container">
+            <p class="greeting">I go to find me</p>
+            <p class="name">gianglele</p>
+            <button id="exploreBtn" onclick="document.getElementById('dropdownContainer').style.display = 'block'">Explore</button> <!-- Nút Explore để mở dropdown -->
+
+            <!-- Màn hình dropdown khi nhấn vào nút Explore -->
+            <div id="dropdownContainer" class="dropdown-container" style="display: none;">
+                <select name="trip" id="tripSelect" onchange="handleTripSelection()">
+                    <option value="">Select a Trip</option>
+                    <option value="newTrip">Add</option> <!-- Tùy chọn "Add" để thêm chuyến đi mới -->
+                </select>
+
+                <!-- Màn hình nhập tên chuyến đi mới, sẽ hiển thị khi chọn "Add" -->
+                <div id="newOptionInput" style="display: none;">
+                    <label for="newOptionName">Enter New Option Name:</label>
+                    <input type="text" id="newOptionName" placeholder="Enter trip name">
+                    <button onclick="addNewOption()">Add Option</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tagify Input -->
+        <input id="tags-input" placeholder="Select or add an option" />
+    </div>
+
+    <!-- Thêm Tagify JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.min.js"></script>
+
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCynY3Mtmx7RvqqAKGQJcBoPN0SX-CR5xk",
+            authDomain: "traveldiary-fbb3e.firebaseapp.com",
+            projectId: "traveldiary-fbb3e",
+            storageBucket: "traveldiary-fbb3e.firebasestorage.app",
+            messagingSenderId: "612490295657",
+            appId: "1:612490295657:web:2bfac2a72e745dfe04e5f8",
+            measurementId: "G-NCYPXDZ6SB"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Khởi tạo Tagify cho input
+        var input = document.getElementById('tags-input');
+        var tagify = new Tagify(input);
+
+        // Hàm tải danh sách chuyến đi từ Firestore
+        async function loadTrips() {
+            const trips = [];
+            try {
+                const querySnapshot = await db.collection("trips").get();
+                querySnapshot.forEach((doc) => {
+                    trips.push(doc.data().name); // Push trip names to array
+                });
+
+                // Add trips to Tagify
+                tagify.addTags(trips);
+
+                // Populate dropdown with trips
+                const tripSelect = document.getElementById("tripSelect");
+                trips.forEach((trip) => {
+                    const option = document.createElement('option');
+                    option.value = trip;
+                    option.textContent = trip;
+                    tripSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error getting trips: ", error);
+            }
+        }
+
+        // Hàm thêm chuyến đi mới vào Firestore và cập nhật dropdown
+        async function addNewOption() {
+            const newOptionName = document.getElementById('newOptionName').value;
+            if (newOptionName) {
+                try {
+                    // Thêm chuyến đi mới vào Firestore
+                    await db.collection("trips").add({
+                        name: newOptionName
+                    });
+
+                    // Thêm chuyến đi mới vào Tagify
+                    tagify.addTags([newOptionName]);
+
+                    // Thêm chuyến đi vào dropdown
+                    const tripSelect = document.getElementById('tripSelect');
+                    const newOption = document.createElement('option');
+                    newOption.value = newOptionName;
+                    newOption.textContent = newOptionName;
+                    tripSelect.insertBefore(newOption, tripSelect.lastChild);
+
+                    // Clear input và ẩn phần nhập tên
+                    document.getElementById('newOptionName').value = ''; 
+                    document.getElementById('newOptionInput').style.display = 'none'; 
+
+                    alert('New trip added: ' + newOptionName);
+                } catch (error) {
+                    console.error("Error adding new trip: ", error);
+                }
+            } else {
+                alert('Please enter a name for the new option.');
+            }
+        }
+
+        // Hàm xử lý khi chọn "Add New Option"
+        function handleTripSelection() {
+            const selectElement = document.getElementById('tripSelect');
+            const newOptionInput = document.getElementById('newOptionInput');
+
+            if (selectElement.value === 'newTrip') {
+                newOptionInput.style.display = 'block'; // Hiển thị phần nhập tên
+            } else {
+                newOptionInput.style.display = 'none'; // Ẩn phần nhập tên nếu không chọn "Add New Option"
+            }
+        }
+
+        // Load trips khi trang được tải
+        window.onload = function() {
+            loadTrips();
+        };
+    </script>
+</body>
+</html>
